@@ -33,6 +33,61 @@ function countBorrows(a: number, b: number): number {
   return borrows;
 }
 
+function randInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function weightedRandom<T>(items: T[], weights: number[]): T {
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  let random = Math.random() * totalWeight;
+  for (let i = 0; i < items.length; i++) {
+    random -= weights[i];
+    if (random <= 0) return items[i];
+  }
+  return items[items.length - 1];
+}
+
+// Difficulty scoring (0-1, higher = harder)
+function computeDifficultyScore(
+  lhs: number,
+  rhs: number,
+  op: Operation,
+  carries: number,
+  borrows: number
+): number {
+  const lhsD = countDigits(lhs);
+  const rhsD = countDigits(rhs);
+  let score = 0;
+
+  // Base digit count contribution
+  score += (lhsD + rhsD) * 0.15;
+
+  // Carry/borrow penalty
+  score += carries * 0.12;
+  score += borrows * 0.12;
+
+  // Operation difficulty
+  const opWeight = { add: 0.05, sub: 0.08, mul: 0.25, div: 0.20 };
+  score += opWeight[op];
+
+  // Multiplication-specific difficulty
+  if (op === 'mul') {
+    const hardMultipliers = [6, 7, 8, 9];
+    const isHardMult = hardMultipliers.includes(lhs) || hardMultipliers.includes(rhs);
+    const has2Digit = lhsD >= 2 || rhsD >= 2;
+    
+    if (isHardMult && has2Digit) score += 0.15;
+    else if (isHardMult) score += 0.08;
+    else if (has2Digit) score += 0.12;
+    
+    // Penalize easy multipliers
+    const easyMultipliers = [1, 2, 5, 10];
+    if (easyMultipliers.includes(lhs) || easyMultipliers.includes(rhs)) score -= 0.05;
+  }
+
+  return Math.min(1, Math.max(0, score));
+}
+
 function computeTags(
   lhs: number,
   rhs: number,
@@ -63,17 +118,20 @@ function computeTags(
 
   if (op === 'add') {
     if (meta.carryCount >= 2) tags.push('carry_heavy');
-    else if (meta.carryCount === 0) tags.push('carry_light');
+    else if (meta.carryCount === 1) tags.push('carry_light');
     if (lhs + rhs === 100) tags.push('complement_to_100');
   }
 
   if (op === 'sub' && meta.borrowCount >= 2) tags.push('borrow_heavy');
+  if (op === 'sub' && meta.borrowCount === 1) tags.push('borrow_light');
   if (op === 'div' && Number.isInteger(answer)) tags.push('division_clean');
 
   const lhsD = countDigits(lhs);
   const rhsD = countDigits(rhs);
   if (lhsD >= 2 && rhsD >= 2) tags.push('double_digit_both');
   if (lhsD === 1 && rhsD === 1) tags.push('single_digit_both');
+  if (lhsD >= 2 && rhsD === 1) tags.push('two_by_one');
+  if (lhsD === 1 && rhsD >= 2) tags.push('one_by_two');
 
   if (answer < 0) tags.push('result_negative');
   if (!Number.isInteger(answer)) tags.push('result_decimal');
@@ -81,63 +139,105 @@ function computeTags(
   return tags;
 }
 
-function estimateDifficulty(
-  lhs: number,
-  rhs: number,
-  op: Operation,
-  carries: number,
-  borrows: number
-): number {
-  const lhsD = countDigits(lhs);
-  const rhsD = countDigits(rhs);
-  let score = 0;
-
-  score += (lhsD + rhsD) * 0.1;
-  score += carries * 0.15;
-  score += borrows * 0.15;
-
-  const opWeight = { add: 0.05, sub: 0.1, mul: 0.25, div: 0.3 };
-  score += opWeight[op];
-
-  if (op === 'mul') {
-    const hard = [6, 7, 8, 9];
-    if (hard.includes(lhs) || hard.includes(rhs)) score += 0.1;
-  }
-
-  return Math.min(1, score);
-}
-
-function randInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function generateAdd(config: GameConfig) {
-  const lhs = randInt(config.minValue, config.maxValue);
-  const rhs = randInt(config.minValue, config.maxValue);
-  return { lhs, rhs, answer: lhs + rhs };
-}
-
-function generateSub(config: GameConfig) {
-  let lhs = randInt(config.minValue, config.maxValue);
-  let rhs = randInt(config.minValue, config.maxValue);
-  if (!config.allowNegatives && rhs > lhs) [lhs, rhs] = [rhs, lhs];
-  return { lhs, rhs, answer: lhs - rhs };
-}
-
+// Weighted multiplication templates
 function generateMul(config: GameConfig) {
   if (config.mulTableTarget !== null) {
     const t = config.mulTableTarget;
     const other = randInt(1, 12);
     return { lhs: t, rhs: other, answer: t * other };
   }
-  const lhs = randInt(config.minValue, config.maxValue);
-  const rhs = randInt(config.minValue, config.maxValue);
-  return { lhs, rhs, answer: lhs * rhs };
+
+  const min = config.minValue;
+  const max = config.maxValue;
+
+  // Difficulty tiers: 40% single×single (hard), 35% 2×1, 20% 2×2 light, 5% hard spike
+  const tier = weightedRandom(['hard_single', 'two_by_one', 'two_by_two', 'spike'], [40, 35, 20, 5]);
+
+  if (tier === 'hard_single') {
+    // Bias toward difficult single-digit combos: 6×7, 7×8, 8×9, 7×12, 11×8, 12×9
+    const hardCombos = [
+      [6, 7], [7, 8], [8, 9], [7, 12], [11, 8], [12, 9],
+      [7, 6], [8, 7], [9, 8], [12, 7], [8, 11], [9, 12]
+    ];
+    const [a, b] = weightedRandom(hardCombos, hardCombos.map(() => 1));
+    return { lhs: a, rhs: b, answer: a * b };
+  }
+
+  if (tier === 'two_by_one') {
+    // 2-digit × 1-digit, bias toward 6,7,8,9 multipliers
+    const twoDigit = randInt(10, Math.min(max, 99));
+    const multiplier = weightedRandom([6, 7, 8, 9], [30, 30, 20, 20]);
+    return { lhs: twoDigit, rhs: multiplier, answer: twoDigit * multiplier };
+  }
+
+  if (tier === 'two_by_two') {
+    // Light 2×2: keep numbers reasonable
+    const a = randInt(10, 35);
+    const b = randInt(10, 25);
+    return { lhs: a, rhs: b, answer: a * b };
+  }
+
+  // Hard spike: occasional challenging problems
+  const a = randInt(35, 65);
+  const b = randInt(15, 40);
+  return { lhs: a, rhs: b, answer: a * b };
 }
 
+// Weighted addition templates - bias toward carry problems
+function generateAdd(config: GameConfig) {
+  const min = config.minValue;
+  const max = config.maxValue;
+
+  // 70% carry problems, 30% no-carry
+  const hasCarry = Math.random() < 0.7;
+
+  if (hasCarry) {
+    // Generate carry-heavy additions
+    const a = randInt(min, max);
+    const b = randInt(min, max);
+    // Ensure at least one carry by manipulating lower digits
+    const aLower = a % 10;
+    const bLower = b % 10;
+    if (aLower + bLower < 10) {
+      const adjusted = randInt(10 - aLower, 19 - aLower);
+      return { lhs: a, rhs: b + adjusted, answer: a + b + adjusted };
+    }
+    return { lhs: a, rhs: b, answer: a + b };
+  }
+
+  // No-carry but still interesting
+  const a = randInt(min, max);
+  const b = randInt(min, max);
+  return { lhs: a, rhs: b, answer: a + b };
+}
+
+// Weighted subtraction templates - bias toward borrowing
+function generateSub(config: GameConfig) {
+  const min = config.minValue;
+  const max = config.maxValue;
+
+  // 65% borrowing problems
+  const hasBorrow = Math.random() < 0.65;
+
+  if (hasBorrow) {
+    const a = randInt(min + 10, max);
+    const b = randInt(min, a - 1);
+    return { lhs: a, rhs: b, answer: a - b };
+  }
+
+  const a = randInt(min, max);
+  const b = randInt(min, a);
+  return { lhs: a, rhs: b, answer: a - b };
+}
+
+// Weighted division templates - clean but varied
 function generateDiv(config: GameConfig) {
-  const divisor = randInt(Math.max(2, config.minValue), config.maxValue);
-  const quotient = randInt(config.minValue, config.maxValue);
+  const min = config.minValue;
+  const max = config.maxValue;
+
+  // Generate clean divisions with reasonable complexity
+  const divisor = randInt(Math.max(2, min), Math.min(12, max));
+  const quotient = randInt(min, Math.min(max, 20));
   const dividend = divisor * quotient;
   return { lhs: dividend, rhs: divisor, answer: quotient };
 }
@@ -169,7 +269,7 @@ export function generateQuestion(config: GameConfig, adaptiveWeights?: Record<st
 
   const carryCount = op === 'add' ? countCarries(lhs, rhs) : 0;
   const borrowCount = op === 'sub' ? countBorrows(lhs, rhs) : 0;
-  const difficulty = estimateDifficulty(lhs, rhs, op, carryCount, borrowCount);
+  const difficulty = computeDifficultyScore(lhs, rhs, op, carryCount, borrowCount);
   const tags = computeTags(lhs, rhs, op, answer, { carryCount, borrowCount });
 
   const metadata: QuestionMetadata = {

@@ -9,10 +9,13 @@ export type CognitiveTag =
   | 'carry_heavy'
   | 'carry_light'
   | 'borrow_heavy'
+  | 'borrow_light'
   | 'division_clean'
   | 'complement_to_100'
   | 'double_digit_both'
   | 'single_digit_both'
+  | 'two_by_one'
+  | 'one_by_two'
   | 'result_negative'
   | 'result_decimal';
 
