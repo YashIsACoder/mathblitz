@@ -1,4 +1,4 @@
-import { Operation, Question, QuestionMetadata, CognitiveTag, GameConfig } from '@/types';
+import { CognitiveTag, GameConfig, Operation, Question, QuestionMetadata } from '@/types';
 
 function countDigits(n: number): number {
   return Math.floor(Math.abs(n)).toString().length;
@@ -130,14 +130,14 @@ function generateMul(config: GameConfig) {
     const other = randInt(1, 12);
     return { lhs: t, rhs: other, answer: t * other };
   }
-  const lhs = randInt(config.minValue, Math.min(config.maxValue, 12));
-  const rhs = randInt(config.minValue, Math.min(config.maxValue, 12));
+  const lhs = randInt(config.minValue, config.maxValue);
+  const rhs = randInt(config.minValue, config.maxValue);
   return { lhs, rhs, answer: lhs * rhs };
 }
 
 function generateDiv(config: GameConfig) {
-  const divisor = randInt(Math.max(2, config.minValue), Math.min(12, config.maxValue));
-  const quotient = randInt(1, 12);
+  const divisor = randInt(Math.max(2, config.minValue), config.maxValue);
+  const quotient = randInt(config.minValue, config.maxValue);
   const dividend = divisor * quotient;
   return { lhs: dividend, rhs: divisor, answer: quotient };
 }
