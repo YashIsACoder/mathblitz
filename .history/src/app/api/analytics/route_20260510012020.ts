@@ -1,15 +1,8 @@
 import {
-    getAutomaticityAnalysis,
-    getConsistencyScore,
     getDailyTrends,
-    getErrorPatternAnalysis,
-    getFatigueAnalysis,
-    getHesitationDetection,
     getMulHeatmap,
     getOperationHeatmap,
-    getOperationSwitchingCost,
     getOverview,
-    getRecoveryAfterError,
     getSettingsGroupedTrends
 } from '@/lib/analytics';
 import { NextRequest, NextResponse } from 'next/server';
@@ -43,41 +36,6 @@ export async function GET(req: NextRequest) {
 
     if (type === 'operation' && operation) {
       const data = await getOperationHeatmap(USER_ID, operation, startDate, endDate);
-      return NextResponse.json({ data });
-    }
-
-    if (type === 'automaticity') {
-      const data = await getAutomaticityAnalysis(USER_ID, startDate, endDate);
-      return NextResponse.json({ data });
-    }
-
-    if (type === 'hesitation') {
-      const data = await getHesitationDetection(USER_ID, startDate, endDate);
-      return NextResponse.json({ data });
-    }
-
-    if (type === 'consistency') {
-      const data = await getConsistencyScore(USER_ID, startDate, endDate);
-      return NextResponse.json({ data });
-    }
-
-    if (type === 'fatigue') {
-      const data = await getFatigueAnalysis(USER_ID, startDate, endDate);
-      return NextResponse.json({ data });
-    }
-
-    if (type === 'error-patterns') {
-      const data = await getErrorPatternAnalysis(USER_ID, startDate, endDate);
-      return NextResponse.json({ data });
-    }
-
-    if (type === 'recovery') {
-      const data = await getRecoveryAfterError(USER_ID, startDate, endDate);
-      return NextResponse.json({ data });
-    }
-
-    if (type === 'switching-cost') {
-      const data = await getOperationSwitchingCost(USER_ID, startDate, endDate);
       return NextResponse.json({ data });
     }
 

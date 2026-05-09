@@ -7,9 +7,7 @@ import {
     getHesitationDetection,
     getMulHeatmap,
     getOperationHeatmap,
-    getOperationSwitchingCost,
     getOverview,
-    getRecoveryAfterError,
     getSettingsGroupedTrends
 } from '@/lib/analytics';
 import { NextRequest, NextResponse } from 'next/server';
@@ -68,16 +66,6 @@ export async function GET(req: NextRequest) {
 
     if (type === 'error-patterns') {
       const data = await getErrorPatternAnalysis(USER_ID, startDate, endDate);
-      return NextResponse.json({ data });
-    }
-
-    if (type === 'recovery') {
-      const data = await getRecoveryAfterError(USER_ID, startDate, endDate);
-      return NextResponse.json({ data });
-    }
-
-    if (type === 'switching-cost') {
-      const data = await getOperationSwitchingCost(USER_ID, startDate, endDate);
       return NextResponse.json({ data });
     }
 

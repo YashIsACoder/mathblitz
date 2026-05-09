@@ -7,7 +7,6 @@ import {
     getHesitationDetection,
     getMulHeatmap,
     getOperationHeatmap,
-    getOperationSwitchingCost,
     getOverview,
     getRecoveryAfterError,
     getSettingsGroupedTrends

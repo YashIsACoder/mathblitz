@@ -8,7 +8,6 @@ import { DateRangePicker } from './DateRangePicker';
 import { ErrorPatternAnalysis } from './ErrorPatternAnalysis';
 import { FatigueAnalysis } from './FatigueAnalysis';
 import { HesitationDetection } from './HesitationDetection';
-import { OperationSwitchingCost } from './OperationSwitchingCost';
 import { OverviewMetrics } from './OverviewMetrics';
 import { RecoveryAfterError } from './RecoveryAfterError';
 import { SettingsPerformance } from './SettingsPerformance';
@@ -44,7 +43,6 @@ export function AnalyticsDashboard() {
       <FatigueAnalysis startDate={dateRange.startDate} endDate={dateRange.endDate} />
       <ErrorPatternAnalysis startDate={dateRange.startDate} endDate={dateRange.endDate} />
       <RecoveryAfterError startDate={dateRange.startDate} endDate={dateRange.endDate} />
-      <OperationSwitchingCost startDate={dateRange.startDate} endDate={dateRange.endDate} />
       <SettingsPerformance startDate={dateRange.startDate} endDate={dateRange.endDate} />
       <WeaknessPanel insights={weaknesses} />
     </div>
