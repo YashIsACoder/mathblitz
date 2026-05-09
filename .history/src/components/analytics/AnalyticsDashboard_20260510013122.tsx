@@ -14,7 +14,7 @@ import { RecoveryAfterError } from './RecoveryAfterError';
 import { SettingsPerformance } from './SettingsPerformance';
 
 export function AnalyticsDashboard() {
-  const { fetchAll, isLoading, overview } = useAnalyticsStore();
+  const { fetchAll, isLoading, overview, weaknesses } = useAnalyticsStore();
   const [dateRange, setDateRange] = useState<{ startDate: string | null; endDate: string | null }>({ startDate: null, endDate: null });
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
