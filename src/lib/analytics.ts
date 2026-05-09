@@ -4,20 +4,26 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export async function getOverview(userId: string, startDate?: string | null, endDate?: string | null): Promise<AnalyticsOverview> {
-  const where: any = { session: { userId } };
-  
+  // First get session IDs that meet criteria
+  const sessionWhere: any = { userId, score: { gte: 5 } };
   if (startDate || endDate) {
-    where.session.startedAt = {};
-    if (startDate) {
-      where.session.startedAt.gte = new Date(startDate);
-    }
-    if (endDate) {
-      where.session.startedAt.lte = new Date(endDate);
-    }
+    sessionWhere.startedAt = {
+      ...(startDate && { gte: new Date(startDate) }),
+      ...(endDate && { lte: new Date(endDate) }),
+    };
   }
   
+  const validSessions = await prisma.session.findMany({
+    where: sessionWhere,
+    select: { id: true },
+  });
+  
+  const sessionIds = validSessions.map(s => s.id);
+  
   const attempts = await prisma.attempt.findMany({
-    where,
+    where: {
+      sessionId: { in: sessionIds },
+    },
     select: {
       isCorrect: true,
       latencyMs: true,
@@ -54,12 +60,7 @@ export async function getOverview(userId: string, startDate?: string | null, end
   }
 
   const bestSession = await prisma.session.findFirst({
-    where: { userId, ...(startDate || endDate ? {
-      startedAt: {
-        ...(startDate && { gte: new Date(startDate) }),
-        ...(endDate && { lte: new Date(endDate) }),
-      }
-    } : {}) },
+    where: sessionWhere,
     orderBy: { score: 'desc' },
     select: { score: true },
   });
@@ -77,20 +78,26 @@ export async function getOverview(userId: string, startDate?: string | null, end
 }
 
 export async function getMulHeatmap(userId: string, startDate?: string | null, endDate?: string | null): Promise<HeatmapCell[]> {
-  const where: any = { session: { userId }, operation: 'mul' };
-  
+  const sessionWhere: any = { userId, score: { gte: 5 } };
   if (startDate || endDate) {
-    where.session.startedAt = {};
-    if (startDate) {
-      where.session.startedAt.gte = new Date(startDate);
-    }
-    if (endDate) {
-      where.session.startedAt.lte = new Date(endDate);
-    }
+    sessionWhere.startedAt = {
+      ...(startDate && { gte: new Date(startDate) }),
+      ...(endDate && { lte: new Date(endDate) }),
+    };
   }
   
+  const validSessions = await prisma.session.findMany({
+    where: sessionWhere,
+    select: { id: true },
+  });
+  
+  const sessionIds = validSessions.map(s => s.id);
+  
   const mulAttempts = await prisma.attempt.findMany({
-    where,
+    where: { 
+      sessionId: { in: sessionIds },
+      operation: 'mul' 
+    },
     select: { lhs: true, rhs: true, isCorrect: true, latencyMs: true },
   });
 
@@ -113,22 +120,25 @@ export async function getMulHeatmap(userId: string, startDate?: string | null, e
 }
 
 export async function getDailyTrends(userId: string, startDate?: string | null, endDate?: string | null) {
-  const where: any = { userId };
-  
+  const sessionWhere: any = { userId, score: { gte: 5 } };
   if (startDate || endDate) {
-    where.startedAt = {};
-    if (startDate) {
-      where.startedAt.gte = new Date(startDate);
-    }
-    if (endDate) {
-      where.startedAt.lte = new Date(endDate);
-    }
+    sessionWhere.startedAt = {
+      ...(startDate && { gte: new Date(startDate) }),
+      ...(endDate && { lte: new Date(endDate) }),
+    };
   }
   
+  const validSessions = await prisma.session.findMany({
+    where: sessionWhere,
+    select: { id: true },
+  });
+  
+  const sessionIds = validSessions.map(s => s.id);
+  
   const sessions = await prisma.session.findMany({
-    where,
+    where: { id: { in: sessionIds } },
     orderBy: { startedAt: 'desc' },
-    take: 30,
+    take: 100,
   });
 
   return sessions.map(s => ({
@@ -139,20 +149,16 @@ export async function getDailyTrends(userId: string, startDate?: string | null, 
 }
 
 export async function getSettingsGroupedTrends(userId: string, startDate?: string | null, endDate?: string | null) {
-  const where: any = { userId };
-  
+  const sessionWhere: any = { userId, score: { gte: 5 } };
   if (startDate || endDate) {
-    where.startedAt = {};
-    if (startDate) {
-      where.startedAt.gte = new Date(startDate);
-    }
-    if (endDate) {
-      where.startedAt.lte = new Date(endDate);
-    }
+    sessionWhere.startedAt = {
+      ...(startDate && { gte: new Date(startDate) }),
+      ...(endDate && { lte: new Date(endDate) }),
+    };
   }
   
   const sessions = await prisma.session.findMany({
-    where,
+    where: sessionWhere,
     orderBy: { startedAt: 'desc' },
     take: 50,
   });
@@ -195,20 +201,25 @@ export async function getSettingsGroupedTrends(userId: string, startDate?: strin
 }
 
 export async function getAutomaticityAnalysis(userId: string, startDate?: string | null, endDate?: string | null) {
-  const where: any = { session: { userId } };
-  
+  const sessionWhere: any = { userId, score: { gte: 5 } };
   if (startDate || endDate) {
-    where.session.startedAt = {};
-    if (startDate) {
-      where.session.startedAt.gte = new Date(startDate);
-    }
-    if (endDate) {
-      where.session.startedAt.lte = new Date(endDate);
-    }
+    sessionWhere.startedAt = {
+      ...(startDate && { gte: new Date(startDate) }),
+      ...(endDate && { lte: new Date(endDate) }),
+    };
   }
   
+  const validSessions = await prisma.session.findMany({
+    where: sessionWhere,
+    select: { id: true },
+  });
+  
+  const sessionIds = validSessions.map(s => s.id);
+  
   const attempts = await prisma.attempt.findMany({
-    where,
+    where: {
+      sessionId: { in: sessionIds },
+    },
     select: {
       latencyMs: true,
       operation: true,
@@ -254,20 +265,25 @@ export async function getAutomaticityAnalysis(userId: string, startDate?: string
 }
 
 export async function getHesitationDetection(userId: string, startDate?: string | null, endDate?: string | null) {
-  const where: any = { session: { userId } };
-  
+  const sessionWhere: any = { userId, score: { gte: 5 } };
   if (startDate || endDate) {
-    where.session.startedAt = {};
-    if (startDate) {
-      where.session.startedAt.gte = new Date(startDate);
-    }
-    if (endDate) {
-      where.session.startedAt.lte = new Date(endDate);
-    }
+    sessionWhere.startedAt = {
+      ...(startDate && { gte: new Date(startDate) }),
+      ...(endDate && { lte: new Date(endDate) }),
+    };
   }
   
+  const validSessions = await prisma.session.findMany({
+    where: sessionWhere,
+    select: { id: true },
+  });
+  
+  const sessionIds = validSessions.map(s => s.id);
+  
   const attempts = await prisma.attempt.findMany({
-    where,
+    where: {
+      sessionId: { in: sessionIds },
+    },
     select: {
       latencyMs: true,
       operation: true,
@@ -335,20 +351,25 @@ export async function getHesitationDetection(userId: string, startDate?: string 
 }
 
 export async function getConsistencyScore(userId: string, startDate?: string | null, endDate?: string | null) {
-  const where: any = { session: { userId } };
-  
+  const sessionWhere: any = { userId, score: { gte: 5 } };
   if (startDate || endDate) {
-    where.session.startedAt = {};
-    if (startDate) {
-      where.session.startedAt.gte = new Date(startDate);
-    }
-    if (endDate) {
-      where.session.startedAt.lte = new Date(endDate);
-    }
+    sessionWhere.startedAt = {
+      ...(startDate && { gte: new Date(startDate) }),
+      ...(endDate && { lte: new Date(endDate) }),
+    };
   }
   
+  const validSessions = await prisma.session.findMany({
+    where: sessionWhere,
+    select: { id: true },
+  });
+  
+  const sessionIds = validSessions.map(s => s.id);
+  
   const attempts = await prisma.attempt.findMany({
-    where,
+    where: {
+      sessionId: { in: sessionIds },
+    },
     select: {
       latencyMs: true,
       operation: true,
@@ -411,20 +432,16 @@ export async function getConsistencyScore(userId: string, startDate?: string | n
 }
 
 export async function getFatigueAnalysis(userId: string, startDate?: string | null, endDate?: string | null) {
-  const where: any = { session: { userId } };
-  
+  const sessionWhere: any = { userId, score: { gte: 5 } };
   if (startDate || endDate) {
-    where.session.startedAt = {};
-    if (startDate) {
-      where.session.startedAt.gte = new Date(startDate);
-    }
-    if (endDate) {
-      where.session.startedAt.lte = new Date(endDate);
-    }
+    sessionWhere.startedAt = {
+      ...(startDate && { gte: new Date(startDate) }),
+      ...(endDate && { lte: new Date(endDate) }),
+    };
   }
   
   const sessions = await prisma.session.findMany({
-    where,
+    where: sessionWhere,
     include: {
       attempts: {
         select: {
@@ -531,20 +548,26 @@ export async function getFatigueAnalysis(userId: string, startDate?: string | nu
 }
 
 export async function getErrorPatternAnalysis(userId: string, startDate?: string | null, endDate?: string | null) {
-  const where: any = { session: { userId }, isCorrect: false };
-  
+  const sessionWhere: any = { userId, score: { gte: 5 } };
   if (startDate || endDate) {
-    where.session.startedAt = {};
-    if (startDate) {
-      where.session.startedAt.gte = new Date(startDate);
-    }
-    if (endDate) {
-      where.session.startedAt.lte = new Date(endDate);
-    }
+    sessionWhere.startedAt = {
+      ...(startDate && { gte: new Date(startDate) }),
+      ...(endDate && { lte: new Date(endDate) }),
+    };
   }
   
+  const validSessions = await prisma.session.findMany({
+    where: sessionWhere,
+    select: { id: true },
+  });
+  
+  const sessionIds = validSessions.map(s => s.id);
+  
   const mistakes = await prisma.attempt.findMany({
-    where,
+    where: {
+      sessionId: { in: sessionIds },
+      isCorrect: false
+    },
     select: {
       operation: true,
       metadata: true,
@@ -627,20 +650,25 @@ export async function getErrorPatternAnalysis(userId: string, startDate?: string
 }
 
 export async function getRecoveryAfterError(userId: string, startDate?: string | null, endDate?: string | null) {
-  const where: any = { session: { userId } };
-  
+  const sessionWhere: any = { userId, score: { gte: 5 } };
   if (startDate || endDate) {
-    where.session.startedAt = {};
-    if (startDate) {
-      where.session.startedAt.gte = new Date(startDate);
-    }
-    if (endDate) {
-      where.session.startedAt.lte = new Date(endDate);
-    }
+    sessionWhere.startedAt = {
+      ...(startDate && { gte: new Date(startDate) }),
+      ...(endDate && { lte: new Date(endDate) }),
+    };
   }
   
+  const validSessions = await prisma.session.findMany({
+    where: sessionWhere,
+    select: { id: true },
+  });
+  
+  const sessionIds = validSessions.map(s => s.id);
+  
   const attempts = await prisma.attempt.findMany({
-    where,
+    where: {
+      sessionId: { in: sessionIds },
+    },
     select: {
       isCorrect: true,
       latencyMs: true,
@@ -745,20 +773,25 @@ export async function getRecoveryAfterError(userId: string, startDate?: string |
 }
 
 export async function getOperationSwitchingCost(userId: string, startDate?: string | null, endDate?: string | null) {
-  const where: any = { session: { userId } };
-  
+  const sessionWhere: any = { userId, score: { gte: 5 } };
   if (startDate || endDate) {
-    where.session.startedAt = {};
-    if (startDate) {
-      where.session.startedAt.gte = new Date(startDate);
-    }
-    if (endDate) {
-      where.session.startedAt.lte = new Date(endDate);
-    }
+    sessionWhere.startedAt = {
+      ...(startDate && { gte: new Date(startDate) }),
+      ...(endDate && { lte: new Date(endDate) }),
+    };
   }
   
+  const validSessions = await prisma.session.findMany({
+    where: sessionWhere,
+    select: { id: true },
+  });
+  
+  const sessionIds = validSessions.map(s => s.id);
+  
   const attempts = await prisma.attempt.findMany({
-    where,
+    where: {
+      sessionId: { in: sessionIds },
+    },
     select: {
       operation: true,
       latencyMs: true,
@@ -847,29 +880,27 @@ export async function getOperationSwitchingCost(userId: string, startDate?: stri
 }
 
 export async function getOperationHeatmap(userId: string, operation: string, startDate?: string | null, endDate?: string | null) {
-  const where: any = { 
-    session: { userId },
-    operation,
-  };
-  
+  const sessionWhere: any = { userId, score: { gte: 5 } };
   if (startDate || endDate) {
-    where.session.startedAt = {};
-    if (startDate) {
-      where.session.startedAt.gte = new Date(startDate);
-    }
-    if (endDate) {
-      where.session.startedAt.lte = new Date(endDate);
-    }
+    sessionWhere.startedAt = {
+      ...(startDate && { gte: new Date(startDate) }),
+      ...(endDate && { lte: new Date(endDate) }),
+    };
   }
   
+  const validSessions = await prisma.session.findMany({
+    where: sessionWhere,
+    select: { id: true },
+  });
+  
+  const sessionIds = validSessions.map(s => s.id);
+  
   const attempts = await prisma.attempt.findMany({
-    where,
-    select: {
-      lhs: true,
-      rhs: true,
-      isCorrect: true,
-      latencyMs: true,
+    where: { 
+      sessionId: { in: sessionIds },
+      operation,
     },
+    select: { lhs: true, rhs: true, isCorrect: true, latencyMs: true },
   });
 
   const cells: Record<string, HeatmapCell> = {};

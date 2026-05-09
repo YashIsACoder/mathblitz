@@ -147,8 +147,26 @@ export const useGameStore = create<GameState>()(
       set({ currentQuestion: nextQuestion, questionStartTime: Date.now() });
     },
 
-    endGame: () => {
+    endGame: async () => {
+      const state = get();
       set({ phase: 'finished' });
+      
+      // Update session score in database
+      if (state.sessionId) {
+        try {
+          await fetch('/api/sessions', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              sessionId: state.sessionId, 
+              score: state.score,
+              endedAt: new Date().toISOString()
+            }),
+          });
+        } catch (error) {
+          console.error('Failed to update session score:', error);
+        }
+      }
     },
 
     resetToIdle: () => {
