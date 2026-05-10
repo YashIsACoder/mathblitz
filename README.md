@@ -107,9 +107,3 @@ mathblitz/
 │   └── lib/               # Utilities
 └── package.json
 ```
-
----
-
-## 🚀 Deployment
-
-For production deployment, see [SETUP.md](SETUP.md) for Vercel/Turso deployment instructions.
