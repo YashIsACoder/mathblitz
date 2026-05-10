@@ -18,6 +18,7 @@
 .DS_Store
 *.pem
 *.history
+SETUP.md
 
 # debug
 npm-debug.log*
