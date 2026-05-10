@@ -3,6 +3,7 @@
 import { useAnalyticsStore } from '@/stores/analyticsStore';
 import { useEffect, useState } from 'react';
 import { AutomaticityAnalysis } from './AutomaticityAnalysis';
+import { CacheManager } from './CacheManager';
 import { ConsistencyScore } from './ConsistencyScore';
 import { DateRangePicker } from './DateRangePicker';
 import { ErrorPatternAnalysis } from './ErrorPatternAnalysis';
@@ -36,6 +37,8 @@ export function AnalyticsDashboard() {
       {overview && <OverviewMetrics data={overview} />}
       
       <DateRangePicker onRangeChange={handleDateRangeChange} />
+
+      <CacheManager />
 
       <SettingsPerformance startDate={dateRange.startDate} endDate={dateRange.endDate} />
       <AutomaticityAnalysis startDate={dateRange.startDate} endDate={dateRange.endDate} />
